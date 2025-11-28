@@ -4,9 +4,11 @@ from pypdf import PdfReader, PdfWriter
 
 def parse_page_selection(selection_str, total_pages):
     """
-    Parses a string of page selections (e.g., "1,3-5,8") into a list of 0-indexed page numbers.
+    Parses a string of page selections into a LIST (preserving order).
     """
-    selected_pages = set()
+    # We use a list instead of a set to preserve order and allow duplicates
+    selected_pages = [] 
+    
     # Remove spaces and split by comma
     parts = selection_str.replace(" ", "").split(',')
 
@@ -21,37 +23,42 @@ def parse_page_selection(selection_str, total_pages):
                 end = int(end_str)
                 
                 # Check bounds
-                if not (1 <= start <= total_pages and 1 <= end <= total_pages and start <= end):
-                    continue # Skip invalid range
+                if not (1 <= start <= total_pages and 1 <= end <= total_pages):
+                    continue 
+
+                # Handle forward range (1-5) and backward range (5-1)
+                step = 1 if start <= end else -1
                 
-                for i in range(start - 1, end):
-                    selected_pages.add(i)
+                # We need to add +1 to end if step is positive, or -1 if negative for python range
+                range_end = end + 1 if step == 1 else end - 1
+                
+                for i in range(start, range_end, step):
+                    selected_pages.append(i - 1) # Convert to 0-indexed
+                    
             except ValueError:
-                continue # Skip invalid format
+                continue 
         else:
             try:
                 page_num = int(part)
                 if not (1 <= page_num <= total_pages):
-                    continue # Skip out of bounds
-                selected_pages.add(page_num - 1) # Convert to 0-indexed
+                    continue 
+                selected_pages.append(page_num - 1) # Convert to 0-indexed
             except ValueError:
-                continue # Skip non-integers
+                continue 
     
-    return sorted(list(selected_pages))
+    # We return the list directly, WITHOUT sorting
+    return selected_pages
 
 def main():
-    # Initialize Tkinter and hide the main window
     root = tk.Tk()
     root.withdraw()
 
-    # 1. Select PDF from computer
     input_pdf_path = filedialog.askopenfilename(
         title="Select Input PDF",
         filetypes=[("PDF Files", "*.pdf")]
     )
 
     if not input_pdf_path:
-        print("No file selected. Exiting.")
         return
 
     try:
@@ -61,36 +68,28 @@ def main():
         messagebox.showerror("Error", f"Could not read PDF file:\n{e}")
         return
 
-    # 2. Ask which pages should be selected
     selected_page_indices = []
     
     while True:
-        # Show input dialog
         page_selection_str = simpledialog.askstring(
             "Select Pages",
             f"File has {total_pages} pages.\n"
-            "Enter page numbers (e.g., '1,3-5,8'):"
+            "Enter pages in the EXACT order you want them.\n"
+            "(e.g., '10, 1, 5-8'):"
         )
 
-        # If user pressed Cancel
         if page_selection_str is None:
-            print("Operation cancelled.")
             return
 
         selected_page_indices = parse_page_selection(page_selection_str, total_pages)
         
         if selected_page_indices:
-            break # Valid pages found, proceed
+            break 
         else:
-            # Show warning and loop back
-            retry = messagebox.askretrycancel(
-                "Invalid Selection", 
-                "No valid pages were detected in your input.\nPlease try again."
-            )
+            retry = messagebox.askretrycancel("Invalid Selection", "No valid pages detected.")
             if not retry:
                 return
 
-    # 3. Create new PDF file with those pages selected
     output_pdf_path = filedialog.asksaveasfilename(
         title="Save New PDF As",
         defaultextension=".pdf",
@@ -98,10 +97,8 @@ def main():
     )
 
     if not output_pdf_path:
-        print("Save cancelled.")
         return
 
-    # 4. Write the file
     writer = PdfWriter()
     
     try:
@@ -111,14 +108,10 @@ def main():
         with open(output_pdf_path, "wb") as output_file:
             writer.write(output_file)
         
-        # Success message
-        messagebox.showinfo(
-            "Success", 
-            f"New PDF created successfully!\nSaved at: {output_pdf_path}\nPages extracted: {len(writer.pages)}"
-        )
+        messagebox.showinfo("Success", f"Saved at: {output_pdf_path}")
         
     except Exception as e:
-        messagebox.showerror("Error", f"An error occurred while saving:\n{e}")
+        messagebox.showerror("Error", f"Error saving:\n{e}")
 
 if __name__ == "__main__":
     main()
