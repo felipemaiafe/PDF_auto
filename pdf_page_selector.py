@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, simpledialog, messagebox
 from pypdf import PdfReader, PdfWriter
-import sys
 
 def parse_page_selection(selection_str, total_pages):
     """
