@@ -41,7 +41,6 @@ class PDFMergerApp:
         self.inner_frame = tk.Frame(self.canvas, bg="white")
         
         # Create a window inside the canvas to hold the frame
-        # We start with a generic width, but bind it to resize later
         self.canvas_window = self.canvas.create_window((0, 0), window=self.inner_frame, anchor="nw")
 
         # --- BINDINGS FOR SCROLLING ---
@@ -80,8 +79,6 @@ class PDFMergerApp:
         
         if not filepaths:
             return
-
-        print(f"Adding {len(filepaths)} files...") # Debug print
 
         for path in filepaths:
             self.create_row(path)
