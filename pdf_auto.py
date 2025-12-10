@@ -19,7 +19,7 @@ class PDFToolbox:
         # --- CONFIGURATION ---
         self.tools = [
             {
-                "name": "PDF Merger (Drag & Drop)", 
+                "name": "PDF Merger", 
                 "class_ref": pdf_merge.PDFMergerApp, 
                 "desc": "Combine multiple PDF files into one.\nSupports reordering."
             },
