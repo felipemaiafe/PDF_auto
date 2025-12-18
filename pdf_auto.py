@@ -16,6 +16,9 @@ class PDFToolbox:
         self.root.title("My PDF Toolbox")
         self.root.geometry("400x400")
 
+        # Dictionary to track open windows { "Tool Name": window_object }
+        self.open_windows = {}
+
         # --- CONFIGURATION ---
         self.tools = [
             {
@@ -62,10 +65,29 @@ class PDFToolbox:
             w.bind("<Button-1>", on_click)
 
     def launch_tool(self, tool_info):
-        self.status_label.config(text=f"Running {tool_info['name']}...")
+        name = tool_info['name']
+
+        # 1. Check if window is already open
+        if name in self.open_windows:
+            existing_window = self.open_windows[name]
+            # Check if the user didn't close it manually
+            if existing_window.winfo_exists():
+                # Bring it to front
+                existing_window.lift()
+                existing_window.focus_force()
+                self.status_label.config(text=f"Switched to {name}")
+                return
+            else:
+                # It was closed, remove from list
+                del self.open_windows[name]
+
+        self.status_label.config(text=f"Running {name}...")
         
-        # Create a new Window for the tool
+        # 2. Create new Window
         new_window = tk.Toplevel(self.root)
+        
+        # 3. Add to tracking list
+        self.open_windows[name] = new_window
         
         try:
             app_class = tool_info['class_ref']
@@ -73,19 +95,19 @@ class PDFToolbox:
             # Run the tool
             app_class(new_window)
             
-            # --- THE FIX IS HERE ---
-            # We wrap 'wait_window' in a try/except block.
-            # If the tool closed itself immediately (like Page Extractor does on Cancel),
-            # wait_window will throw a TclError. We simply ignore it.
+            # Wait for it to close (cleanup)
             try:
                 new_window.wait_window()
             except tk.TclError:
-                pass # Window was already destroyed, which is fine.
+                pass 
 
             self.status_label.config(text="Ready")
+            
+            # Remove from tracking once closed cleanly
+            if name in self.open_windows:
+                del self.open_windows[name]
 
         except Exception as e:
-            # Only show error if it's NOT the "bad window" error
             if "bad window path name" not in str(e):
                 messagebox.showerror("Error", f"Failed to launch:\n{e}")
             self.status_label.config(text="Ready")
