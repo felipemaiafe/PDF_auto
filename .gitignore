@@ -16,4 +16,5 @@ dist/
 PDF/
 *.egg-info
 *.spec
-.ico
+*.ico
+*.pdf
